@@ -228,10 +228,10 @@ main { padding: 16px 20px 40px; max-width: 1700px; margin: 0 auto; }
 <header class="topbar">
   <div class="brand">
     <h1>WECC Zonal Market Model</h1>
-    <span class="sub">All 53 weeks of 2025, one model (model2) · headline metric: CAISO DLAPs · 19 areas · all times UTC−6, hour-beginning</span>
+    <span class="sub">2025 (53 weeks) and 2026 to July (29 weeks), one model (model2) · headline metric: CAISO DLAPs · 19 areas · all times UTC−6, hour-beginning</span>
     <div class="verdict">
       <span class="pill good">model2 · CAISO DLAP prices = CAISO published; other areas = model shadow prices (indicative)</span>
-      <details class="about"><summary>model2, 2025. <b>CAISO DLAPs (CAISO's published prices): day-ahead MAE 6.35, real-time 9.39 $/MWh</b> (three-DLAP hourly; R38 7.30 / 9.96). Other areas: model shadow prices, indicative only &mdash; <u>what it is and its limits</u></summary>
+      <details class="about"><summary>model2, 2025. <b>CAISO DLAPs (CAISO's published prices): day-ahead MAE 6.35, real-time 9.39 $/MWh</b> (three-DLAP hourly; R38 7.30 / 9.96); <b>2026 out of sample (Jan&ndash;Jul): 6.61 / 10.21</b>. Other areas: model shadow prices, indicative only &mdash; <u>what it is and its limits</u></summary>
       <span><b>model2</b> runs unchanged over all 53 weeks of 2025. Each day it clears CAISO (four zones on PowerWorld PTDFs) and the
       other 35 EIA-930 balancing authorities (links limited hour by hour around their EIA-930 flow) as two markets: day-ahead unit
       commitment over 3,695 EIA-860M plant groups, then 5-minute real time. California offers are CAISO's published bids.
@@ -246,7 +246,7 @@ main { padding: 16px 20px 40px; max-width: 1700px; margin: 0 auto; }
       ELAP prices, real-time MAE 11.32 (R38 11.50), Northwest 9.62, Montana 9.72, PNM 15.9, El Paso 14.9.
       <b>Limits:</b> hydro, coal output and California's offers are 2025 actuals (a replay, not a forecast); calibrated on 2025 only;
       the largest 5-minute spikes are missing (99.9th percentile $112 against $198). Solved with CPLEX on the cluster.</span></details>
-      <span class="pill ro">Read-only snapshot, 2026-10-27 (v37)</span>
+      <span class="pill ro">Read-only snapshot, 2026-11-04</span>
     </div>
   </div>
   <div class="controls" id="globalControls">
@@ -273,7 +273,7 @@ main { padding: 16px 20px 40px; max-width: 1700px; margin: 0 auto; }
   <button data-view="congestion">Congestion</button>
   <button data-view="load">Load</button>
   <button data-view="curve">Supply curve</button>
-  <button data-view="year">2025 year</button>
+  <button data-view="year">Years (2025, 2026)</button>
 </nav>
 
 <div id="toast" class="toast" role="status" hidden></div>
@@ -291,6 +291,7 @@ but they are <b>indicative only and not in the headline metrics</b>.</p>
 <p><b>CAISO DLAPs, 2025, model vs CAISO</b> (mean absolute error, $/MWh): day-ahead 6.35, real time 9.39 (three-DLAP,
 hourly); 5-minute real time SCE 10.51, PG&amp;E 11.37, SDG&amp;E 12.36; intervals below $0 7.1&nbsp;% (CAISO 8.3&nbsp;%).
 Other areas (indicative): real-time 11.32 (the previous model R38: 11.50).</p>
+<p><b>2026, out of sample</b> (same model and configuration, every parameter tuned on 2025; 29 weeks, 4 January to 25 July 2026, the last week with CAISO's published bids): three-DLAP day-ahead MAE 6.61 (correlation 0.89), real time 10.21 hourly; intervals below $0 10.9&nbsp;% (CAISO 14.4&nbsp;%). Pick 2026 in the Years tab, or any 2026 week in the model selector.</p>
 <p class="note">CAISO's imports and exports are not fixed to history: a predicted price-taking block (self-schedules,
 RA imports bid at or below $0; predicted from day-ahead load, solar, wind and gas information) plus economic import offers and
 export bids per corridor at the neighbours' price plus cap-and-trade cost and a hurdle, cleared with California's supply
@@ -434,8 +435,13 @@ under CAISO's intertie rules and held at their day-ahead schedule in real time. 
 
   <section id="view-year" class="view" hidden>
     <div class="card">
-      <h2>2025, a year the model never saw <span class="muted small">model2 run unchanged over all 53 weeks of 2025 and scored against CAISO's three DLAPs; every one of those weeks is also in the model selector, with full 5-minute detail in every other view</span></h2>
+      <div class="seg" id="segYear" role="radiogroup" aria-label="Year" style="margin-bottom:10px"><button data-y="2025" class="on">2025</button><button data-y="2026">2026 (Jan&ndash;Jul)</button></div>
+      <h2 id="yearHead">2025, calibration year <span class="muted small">parameters chosen on twelve 2025 test weeks, then model2 run over all 53 weeks of 2025 and scored against CAISO's three DLAPs; every one of those weeks is also in the model selector, with full 5-minute detail in every other view</span></h2>
       <div class="kpis" id="yearKpis"></div>
+      <p class="note yr-only" data-year="2026" hidden><b>2026, out of sample.</b> The same model (same configuration, every parameter tuned on 2025) run unchanged on 2026 inputs built the same way:
+      29 weeks, 4 January to 25 July 2026, the last week for which CAISO had published its bids (they appear about 90 days later). Imports
+      are predicted by the model trained on 2025 only. Coal outside California follows EPA CEMS, available to June 2026. From May 2026
+      PacifiCorp and Portland General trade in CAISO's Extended Day-Ahead Market (EDAM), which the model, built on 2025's rules, does not represent.</p>
       <p class="note">Each week was solved on its own with one warm-up day, exactly as the 2024 study weeks were. The model is given what actually happened &mdash; load, wind, solar, hydro and interchange between the other balancing authorities from EIA-930 (CAISO's own imports and exports are a predicted price-taking block plus economic interties cleared under CAISO's rules) (California's load, wind and solar from CAISO's OASIS, its load net of battery charging), the plant fleet from EIA-860M (July 2025), California's thermal, storage, solar and wind offers from CAISO's published bids for that date and hour, gas from CAISO's daily fuel index, and each week's starting battery charge from CAISO's storage report &mdash; so this reproduces prices under known conditions rather than forecasting them. Calibrated rather than observed: 90&nbsp;% of the battery fleet available, the 900&nbsp;MW south-to-north limit on Path&nbsp;15, the balancing-authority link limits (each hour 1.25&times; the link's EIA-930 flow plus 300&nbsp;MW, within 1.5&times; its 1st/99th percentile flow), WEIM trade with CAISO within each tie's remaining hourly capacity (its 1st/99th percentile flow less the historical flow), energy-neutral per day, thermal offers outside California at half their cost plus half CAISO's hourly price, Northwest hydro within &plusmn;10&nbsp;% of actual, with a $2 greenhouse-gas wedge on sales into California, and hydro outside California offering 1.4&times; the day's mean CAISO day-ahead price within &plusmn;20&nbsp;% of its actual hourly output. Coal outside California is held within 90-100&nbsp;% of its EPA CEMS output, which carries its outages; other generator and transmission outages are not modelled. Cards compare with R38, the previous model, scored the same way.</p>
     </div>
     <div class="grid2">
@@ -447,7 +453,7 @@ under CAISO's intertie rules and held at their day-ahead schedule in real time. 
       <div class="card"><h2>Average day, real time</h2><div id="yearHodRT" class="chart"></div></div>
     </div>
     <!--AREAS-START-->
-    <div class="card">
+    <div class="card yr-only" data-year="2025">
       <h2>Area by area, real time <span class="muted small">M2, every 5-minute interval of 2025, each area against its own CAISO node
       (DLAP in California, WEIM ELAP elsewhere; the Northwest is the average of its seven ELAPs). WEIM had no day-ahead market in 2025,
       so outside California only real time can be scored. Rows in amber: CAISO's midday price is negative at least 5 % of the time and
@@ -468,6 +474,28 @@ under CAISO's intertie rules and held at their day-ahead schedule in real time. 
       reproduced; in New Mexico, El Paso and the Rockies they are not.</p>
     </div>
     <!--AREAS-END-->
+    <!--AREAS-2026-START-->
+    <div class="card yr-only" data-year="2026">
+      <h2>Area by area, real time <span class="muted small">M2, every 5-minute interval of 2026 run, each area against its own CAISO node
+      (DLAP in California, WEIM ELAP elsewhere; the Northwest is the average of its seven ELAPs). WEIM had no day-ahead market in 2025,
+      so outside California only real time can be scored. Rows in amber: CAISO's midday price is negative at least 5 % of the time and
+      the model's less than half as often.</span></h2>
+      <div class="tablewrap"><table class="tbl">
+        <thead><tr><th class="l">Area</th><th class="l">CAISO node</th><th>MAE $/MWh</th><th>Bias</th><th>Corr</th>
+        <th>Mean model</th><th>Mean CAISO</th><th>&lt;$0 % model</th><th>&lt;$0 % CAISO</th><th>Midday &lt;$0 % model</th><th>Midday &lt;$0 % CAISO</th></tr></thead>
+        <tbody><tr><td class="l">DLAP_SCE (SCE)</td><td class="l small muted">DLAP_SCE</td><td>10.4</td><td>+0.6</td><td>0.39</td><td>23.2</td><td>22.6</td><td>17.0</td><td>19.6</td><td>41.1</td><td>46.3</td></tr><tr><td class="l">DLAP_SDGE (SDG&amp;E)</td><td class="l small muted">DLAP_SDGE</td><td>14.3</td><td>-4.7</td><td>0.27</td><td>23.3</td><td>28.0</td><td>15.3</td><td>17.6</td><td>37.3</td><td>42.1</td></tr><tr class="warn"><td class="l">DLAP_PGAE (PG&amp;E)</td><td class="l small muted">DLAP_PGAE</td><td>10.7</td><td>+0.0</td><td>0.28</td><td>25.5</td><td>25.5</td><td>3.4</td><td>10.8</td><td>11.0</td><td>27.4</td></tr><tr><td class="l">PNM(10)</td><td class="l small muted">ELAP_PNM</td><td>12.1</td><td>+4.3</td><td>0.37</td><td>21.9</td><td>17.6</td><td>12.0</td><td>20.6</td><td>29.1</td><td>46.1</td></tr><tr><td class="l">LADWP(26)</td><td class="l small muted">ELAP_LADWP</td><td>11.3</td><td>-0.7</td><td>0.44</td><td>21.1</td><td>21.8</td><td>13.2</td><td>20.1</td><td>31.7</td><td>45.7</td></tr><tr><td class="l">APS(14)</td><td class="l small muted">ELAP_AZPS</td><td>10.8</td><td>+2.7</td><td>0.36</td><td>21.7</td><td>19.0</td><td>13.6</td><td>19.3</td><td>32.4</td><td>44.8</td></tr><tr><td class="l">WAPA L.C.(19)</td><td class="l small muted">ELAP_WALC</td><td>11.6</td><td>+1.6</td><td>0.33</td><td>21.6</td><td>19.9</td><td>12.4</td><td>19.1</td><td>29.2</td><td>44.3</td></tr><tr><td class="l">EL PASO(11)</td><td class="l small muted">ELAP_EPE</td><td>17.3</td><td>-1.1</td><td>0.19</td><td>22.0</td><td>23.1</td><td>12.5</td><td>17.6</td><td>30.2</td><td>40.9</td></tr><tr><td class="l">NEVADA(18)</td><td class="l small muted">ELAP_NEVP</td><td>11.2</td><td>-0.0</td><td>0.30</td><td>20.5</td><td>20.5</td><td>13.6</td><td>15.5</td><td>31.4</td><td>35.8</td></tr><tr><td class="l">TEP(16)</td><td class="l small muted">ELAP_TEPC</td><td>11.6</td><td>+1.4</td><td>0.27</td><td>21.8</td><td>20.4</td><td>11.7</td><td>14.9</td><td>28.2</td><td>35.0</td></tr><tr><td class="l">SRP(15)</td><td class="l small muted">ELAP_SRP</td><td>11.3</td><td>+0.9</td><td>0.28</td><td>21.6</td><td>20.7</td><td>12.9</td><td>14.1</td><td>30.6</td><td>32.7</td></tr><tr><td class="l">PACE(65)</td><td class="l small muted">ELAP_PACE</td><td>12.7</td><td>+2.0</td><td>0.13</td><td>22.7</td><td>20.8</td><td>11.5</td><td>13.7</td><td>27.9</td><td>31.5</td></tr><tr class="warn"><td class="l">MONTANA(62)</td><td class="l small muted">ELAP_NWMT</td><td>11.0</td><td>+4.1</td><td>0.15</td><td>23.0</td><td>18.9</td><td>3.2</td><td>13.1</td><td>9.4</td><td>28.0</td></tr><tr class="warn"><td class="l">IDAHO(60)</td><td class="l small muted">ELAP_IPCO</td><td>11.0</td><td>+3.6</td><td>0.33</td><td>23.4</td><td>19.8</td><td>2.5</td><td>12.8</td><td>7.1</td><td>27.7</td></tr><tr class="warn"><td class="l">NORTHWEST(40)</td><td class="l small muted">ELAP_BPAT, ELAP_PACW, ELAP_PGE, ELAP_PSEI, ELAP_AVA, ELAP_SCL, ELAP_TPWR</td><td>10.0</td><td>+4.7</td><td>0.44</td><td>22.9</td><td>18.2</td><td>2.3</td><td>12.4</td><td>6.8</td><td>25.1</td></tr></tbody></table></div>
+      <p class="note">Midday is 10:00-16:00 (UTC&minus;6). California's three areas: MAE 11.8, correlation 0.32.
+      The other twelve: MAE 11.8, correlation 0.30; negative prices in 10.1 % of intervals,
+      against 16.1 % at their ELAPs (midday 24.5 % against 36.5 %).
+      Across those twelve areas CAISO's prices differ by a median of $13.1 at the same interval; the model's by $0.94.
+      <b>Why the gap remains:</b> model2 solves the rest of the West as 35 EIA-930 balancing authorities joined by transport links
+      with no AC network; each link's limit follows its EIA-930 flow hour by hour (1.25x the flow plus 300 MW in its direction, 300 MW
+      against it), which took the median price range across these areas from $1.9 to its present value. CAISO's ELAP prices also differ
+      by its own congestion and loss components and by WEIM transfer limits that EIA-930 does not publish, so the model only separates
+      areas when a link limit binds. Where the price is driven by California (the Southwest's midday surplus, LADWP, Nevada) the negatives are
+      reproduced; in New Mexico, El Paso and the Rockies they are not.</p>
+    </div>
+    <!--AREAS-2026-END-->
     <div class="card">
       <h2>Week by week <span class="muted small">all 53 weeks; DA is day-ahead, RT real time (hourly averages of the 5-minute prices)</span></h2>
       <div class="tablewrap scroll"><table class="tbl" id="yearTbl"></table></div>
@@ -499,7 +527,7 @@ under CAISO's intertie rules and held at their day-ahead schedule in real time. 
 <script src="vendor/leaflet.js"></script>
 <script src="vendor/topojson-client.min.js"></script>
 <script src="vendor/plotly.min.js"></script>
-<script src="static.js?v=m2n"></script>
-<script src="app.js?v=m2n"></script>
-<script src="curve.js?v=m2n"></script>
-<script src="year2025.js?v=m2n"></script>
+<script src="static.js?v=m2o"></script>
+<script src="app.js?v=m2o"></script>
+<script src="curve.js?v=m2o"></script>
+<script src="year2025.js?v=m2o"></script>

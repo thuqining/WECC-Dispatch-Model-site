@@ -7,9 +7,13 @@
  */
 'use strict';
 
-const YEAR_URL = 'data/year_2025.json';
 const REF_R38 = { da: 7.30, rt: 9.96, daCorr: 0.89, rtCorr: 0.73, neg: 5.2 };   // R38 over 2025, same scoring (yStats)
-let YEAR = null;
+const YEARS = {};                 // year -> data/year_<Y>.json (export_year.py)
+let CUR_YEAR = 2025, YEAR = null;
+const YEAR_HEAD = {
+  2025: "2025, calibration year <span class=\"muted small\">parameters chosen on twelve 2025 test weeks, then model2 run over all 53 weeks of 2025 and scored against CAISO's three DLAPs; every one of those weeks is also in the model selector, with full 5-minute detail in every other view</span>",
+  2026: "2026, out of sample <span class=\"muted small\">the same model and configuration run unchanged on January&ndash;July 2026 and scored against CAISO's three DLAPs; every week is also in the model selector</span>"
+};
 
 const yFmt = (x, n = 2) => (x === null || x === undefined || Number.isNaN(x)) ? '–' : x.toFixed(n);
 
@@ -50,10 +54,10 @@ function yLayout(title) {
 }
 const yCfg = { displayModeBar: false, responsive: true };
 
-function yCards(da, rt) {
+function yCards(da, rt, ref) {
   const rows = [
-    ['Day-ahead error', '$' + yFmt(da.mae), `R38 $${yFmt(REF_R38.da)}`],
-    ['Real-time error', '$' + yFmt(rt.mae), `R38 $${yFmt(REF_R38.rt)}`],
+    ['Day-ahead error', '$' + yFmt(da.mae), `${ref.name} $${yFmt(ref.da)}`],
+    ['Real-time error', '$' + yFmt(rt.mae), `${ref.name} $${yFmt(ref.rt)}`],
     ['Day-ahead correlation', yFmt(da.corr), 'real time ' + yFmt(rt.corr)],
     ['Day-ahead level', '$' + yFmt(da.model, 1), 'CAISO $' + yFmt(da.caiso, 1)],
     ['Real-time level', '$' + yFmt(rt.model, 1), 'CAISO $' + yFmt(rt.caiso, 1)],
@@ -75,20 +79,45 @@ function yWeekly() {
       `<td>${yFmt(r.RT_neg, 1)} %</td></tr>`).join('') + '</tbody>';
 }
 
-async function renderYear() {
-  if (!YEAR) {
-    try {
-      YEAR = await window.loadJSON(YEAR_URL);
-    } catch (e) {
-      document.getElementById('yearKpis').innerHTML = `<div class="kpi">year data not available: ${e.message}</div>`;
-      return;
-    }
-  }
-  const da = yStats(YEAR.ca_da.model, YEAR.ca_da.caiso);
-  const rt5 = yStats(YEAR.ca5.model, YEAR.ca5.caiso);
-  const rth = yStats(toHourly(YEAR.ca5.model), toHourly(YEAR.ca5.caiso));
+async function loadYear(y) {
+  if (!YEARS[y]) YEARS[y] = await window.loadJSON(`data/year_${y}.json`);
+  return YEARS[y];
+}
+
+function caStats(Y) {
+  const da = yStats(Y.ca_da.model, Y.ca_da.caiso);
+  const rt5 = yStats(Y.ca5.model, Y.ca5.caiso);
+  const rth = yStats(toHourly(Y.ca5.model), toHourly(Y.ca5.caiso));
   rth.sd = rt5.sd; rth.sdC = rt5.sdC; rth.neg = rt5.neg; rth.negC = rt5.negC;
-  yCards(da, rth);
+  return { da, rth };
+}
+
+async function renderYear() {
+  const seg = document.getElementById('segYear');
+  if (seg && !seg.dataset.wired) {
+    seg.dataset.wired = '1';
+    seg.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+      CUR_YEAR = +b.dataset.y;
+      seg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+      renderYear();
+    }));
+  }
+  document.getElementById('yearHead').innerHTML = YEAR_HEAD[CUR_YEAR] || String(CUR_YEAR);
+  document.querySelectorAll('#view-year .yr-only').forEach((el) => { el.hidden = +el.dataset.year !== CUR_YEAR; });
+  try {
+    YEAR = await loadYear(CUR_YEAR);
+  } catch (e) {
+    document.getElementById('yearKpis').innerHTML = `<div class="kpi">${CUR_YEAR} data not available: ${e.message}</div>`;
+    ['yearErr', 'yearLvl', 'yearHodDA', 'yearHodRT'].forEach((id) => { const el = document.getElementById(id); if (el) Plotly.purge(el); });
+    document.getElementById('yearTbl').innerHTML = '';
+    return;
+  }
+  const { da, rth } = caStats(YEAR);
+  let ref = { name: 'R38', da: REF_R38.da, rt: REF_R38.rt };
+  if (CUR_YEAR !== 2025) {          // other years: the same model's 2025 result as the reference
+    try { const s = caStats(await loadYear(2025)); ref = { name: '2025', da: s.da.mae, rt: s.rth.mae }; } catch (e) { /* keep R38 */ }
+  }
+  yCards(da, rth, ref);
 
   const m = YEAR.monthly, x = m.map(r => r.month.slice(5));
   Plotly.newPlot('yearErr', [
